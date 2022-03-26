@@ -1,8 +1,5 @@
-
 import csv
 from datetime import date
-from doctest import DONT_ACCEPT_TRUE_FOR_1
-from sqlite3 import connect
 
 import mysql.connector 
 import random
@@ -15,7 +12,8 @@ mydb = mysql.connector.connect(
 )
 mycursor = mydb.cursor()
 if mydb.is_connected():
-    print("bonjour mame dabakh")
+    # print("bonjour mame dabakh")
+    pass
 
 def check_date(Date):
     chaine = ",;:' '._-"
@@ -160,7 +158,7 @@ def separe_note_function(notes):
                     valide = False
                 else:
                     noteCompo = composition
-                    
+
                     devoir = devoirs.split(';')
                     for z in range(len(devoir)-1):
                         if int(devoir[z]) < 0 or int(devoir[z]) > 20:
@@ -176,7 +174,7 @@ def separe_note_function(notes):
                             listeSQL[matiere]=MATIERE
                             #print("Liste SQL",listeSQL)
                             somme = somme + int(val)
-                        
+
                         moyenne_devoir = somme / len(devoir)
                         # tableaumoy.append(moyenne_devoir)
 
@@ -206,12 +204,12 @@ def separe_note_function(notes):
     #di = "30:Fev;98"
     #print(transformdate(di))
 
-with open("/home/abdou/PYTHON/Note_eleve.csv", 'r') as Note:
+with open("/home/abdou/PYTHON/Note_eleve.csv", 'r', encoding='ISO-8859-1') as Note:
     myReader = csv.reader(Note)
     listeValide=[]
     liste =[]
     test = []
-   
+
     listeinv =[]
     p=0
     for row in myReader:
@@ -224,14 +222,14 @@ with open("/home/abdou/PYTHON/Note_eleve.csv", 'r') as Note:
         infoEtudiant=dict()
         date1 = transformdate(Date)
         classe1 =classeExact(classe)
-        
+
         if (row[1]!='' and row[2]!='' and row[3]!='' and row[4]!='' and row[5]!='' and matiere!='' ) and \
                 (len(code)==7 and code.isupper() and code.isalnum() and len(nom)>=2 and nom[0].isalpha() and len(prenom)>=3 and prenom.isalpha()) \
                 and classe1!=False and date1 != False and separe_note_function!= False:
                         moyenne11, moyG =separe_note_function(matiere)
-                    
+
                         # print("moyenne11", moyenne11)
-                        
+
                         # comp11 = separe_note_function(matiere)
                         # print()
                         # liste.append([code,nom,prenom,transformdate(Date),classe,comp11;moyenne11])
@@ -249,98 +247,4 @@ with open("/home/abdou/PYTHON/Note_eleve.csv", 'r') as Note:
     # print(listeValide)
         else :
             listeinv.append([code,nom,prenom,date,classe,matiere])
-       
 
-#######################Insertion matière dans la base de données#################
-
-sqlMat = "INSERT INTO matiere(nom_matiere) VALUE (%s)"
-tabMat = []
-for student in listeValide:
-    for key in student['Note'].keys():
-        if key not in tabMat:
-            tabMat.append(key)
-for k in tabMat:
-    mycursor.execute(sqlMat,(k,))
-mydb.commit()
-# print(len(tabMat))
-# print(tabMat)
-
-################ Insertion classe ####################
-
-sqlclas ="INSERT INTO classe(nom_classe) VALUE (%s)"
-tabClas = []
-tabClasse = []
-for k in listeValide:
-    tabClas = (k['classe'],)
-    for clas in tabClas:
-        if clas not in tabClasse:
-            tabClasse.append(clas)
-for m in tabClasse:
-    mycursor.execute(sqlclas,(m,))
-mydb.commit()
-
-################# Insertion des notes ####################################
-# inserer_id="INSERT INTO note(id_eleve,id_mat) VALUES (%s)"
-mycursor.execute("select id_eleve FROM Eleve")
-# mycursor.execute("select id_mat FROM matiere")
-idEleve=[]
-compototal=[]
-for eleve in mycursor.fetchall():
-    idEleve.append(eleve[0])
-for ligne in listeValide:
-    ele=random.choice(idEleve)
-    # print(ele)
-    notes = ligne.get('Note')
-    for matiere in notes:
-        note_matiere = notes.get(matiere)
-        # print(matiere, note_matiere)
-        for dev_comp in note_matiere:
-            if dev_comp !='devoir':
-                valeur = note_matiere.get(dev_comp)
-                compototal.append((valeur,ele))
-                # print(compototal)
-                insert_compo = "INSERT INTO note (Notes,type,id_eleve,id_mat) VALUES (%s,'composition',%s,'11')"
-                for m in compototal:
-                    mycursor.execute(insert_compo,(m))
-                mydb.commit()
-            else:
-                valeur = (note_matiere.get(dev_comp)[0],note_matiere.get(dev_comp)[1],ele)
-                insert_devoir = "INSERT INTO note (Notes,type,id_eleve,id_mat) VALUES (%s,'devoir'%s,%s,'10')"
-                # for h in valeur:
-                #     print(h)
-                mycursor.execute(insert_devoir,valeur)
-            mydb.commit()
-    # # mycursor.execute(inserer_id,valeur)
-    break
-
-#############################################################################
-
-############################ IDENTIFIANT ELEVE####################################
-
-Insert_Eleve = "INSERT INTO Eleve(numero,prenom_el,nom_eleve,Date_naissance,id_classe) VALUES (%s,%s,%s,%s,%s)"
-tabEleve = []
-tabcles=[]
-mycursor.execute("SELECT id_classe FROM classe")
-for b in mycursor.fetchall():
-    tabcles.append(b[0])
-for numero in listeValide:
-    g= (numero['code'],numero['prenom'],numero['nom'],numero['Date'],random.choice(tabcles))
-    tabEleve.append(g)
-mycursor.executemany(Insert_Eleve,tabEleve)
-mydb.commit()
-
-############################ MOYENNE #######################
-insert_moyenne = "INSERT INTO MOYENNE (valeur_moyenne,id_eleve) VALUES (%s,%s)"
-mycursor.execute("SELECT id_eleve FROM Eleve")
-Id_elevee =[]
-moyenne =[]
-for cle_eleve in mycursor.fetchall():
-    Id_elevee.append(cle_eleve[0])
-# print(Id_elevee)
-for moy_eleve in listeValide:
-    a= (moy_eleve['moy_gen'],random.choice(Id_elevee))
-    moyenne.append(a)
-    # print(moyenne)
-for x in moyenne:
-    mycursor.execute(insert_moyenne,(x))
-mydb.commit()
